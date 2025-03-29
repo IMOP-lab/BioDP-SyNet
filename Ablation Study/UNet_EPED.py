@@ -6,7 +6,7 @@ from .unet_parts import *
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ..DP_CoNet.DP_CoNet import EPEDLayer
+from Networks.DP_CoNet import EPEDLayer
 class UNet_EPED(nn.Module):
     def __init__(self, n_channels, n_classes, bilinear=False,use_softmax= False):
         super(UNet_EPED, self).__init__()
