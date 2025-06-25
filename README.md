@@ -27,7 +27,11 @@ BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel pa
 
 This path focuses on suppressing image noise and smoothing the highly heterogeneous signals within tumour regions.
 
-![Edge-Preserving Explicit Diffusion Layer](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png)
+<!-- ![Edge-Preserving Explicit Diffusion Layer](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png) -->
+
+<div align="center">
+  <img src="https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png" alt="Edge-Preserving Explicit Diffusion Layer" width="700px">
+</div>
 
   - **EPED (Edge-Preserving Explicit Diffusion) Layer**: The core module, which abstracts feature maps as manifolds and evolves them using an adaptive Partial Differential Equation (PDE). It effectively removes high-frequency noise while preserving critical tumour boundary structures via a content-aware diffusion coefficient.
 
@@ -38,9 +42,10 @@ This path is designed to overcome the local receptive field limitations of tradi
 ![FreqDualis-HoloSchrod Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/FDH.png)
 
   - **FDH (FreqDualis-HoloSchrod) Attention**: Inspired by the Schrödinger equation from quantum mechanics, this module operates in the frequency domain to capture global shape information and phase consistency, crucial for holistic morphological assessment.
+![Laplacian-Gradient Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/La-Gra.png)
   - **La-Gra (Laplacian-Gradient) Attention**: Embeds fixed differential operators (Laplacian and gradient) as explicit physical priors into the attention mechanism. This enables the model to better distinguish true anatomical boundaries from artifacts and enhances its sensitivity to subtle boundary details.
 
-![Laplacian-Gradient Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/La-Gra.png)
+
 
 -----
 
