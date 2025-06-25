@@ -55,6 +55,8 @@ BioDP-SyNet was benchmarked against 13 baseline models on two challenging DCE-MR
 
 BioDP-SyNet accurately delineates tumour contours, demonstrating superior robustness compared to other models, especially in difficult cases involving small lesions (Case 5) and complex backgrounds (Case 10).
 
+![Qualitative Comparison](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/comparison_of_models.png)
+
 *Figure: A qualitative comparison against 13 leading models on representative cases. BioDP-SyNet (last column) shows the highest consistency with the expert-annotated Ground Truth.*
 
 ### Quantitative Results
