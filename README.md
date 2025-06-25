@@ -19,7 +19,7 @@ Evaluation on BreastDM and BCMedSet demonstrates BioDP-SyNet's gains in Dice, Io
 
 BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel paths that synergistically extract and enhance features from two complementary physical perspectives.BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel paths that synergistically extract and enhance features from two complementary physical perspectives.
 
-[![Qualitative Comparison](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/BioDP-SyNet.png)]
+![Qualitative Comparison](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/BioDP-SyNet.png)
 
 *Figure: Architectural schematic of BioDP-SyNet, detailing its dual-encoder framework where the Spatial Diffusion Path (top) and Frequency Fluctuation Path (bottom) synergize to fuse multi-scale features into a shared decoder.*
 
