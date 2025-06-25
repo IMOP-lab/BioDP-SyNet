@@ -27,11 +27,7 @@ BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel pa
 
 This path focuses on suppressing image noise and smoothing the highly heterogeneous signals within tumour regions.
 
-<!-- ![Edge-Preserving Explicit Diffusion Layer](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png) -->
-
-<div align="center">
-  <img src="https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png" alt="Edge-Preserving Explicit Diffusion Layer" width="700px">
-</div>
+![Edge-Preserving Explicit Diffusion Layer](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png)
 
   - **EPED (Edge-Preserving Explicit Diffusion) Layer**: The core module, which abstracts feature maps as manifolds and evolves them using an adaptive Partial Differential Equation (PDE). It effectively removes high-frequency noise while preserving critical tumour boundary structures via a content-aware diffusion coefficient.
 
