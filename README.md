@@ -19,7 +19,7 @@ Evaluation on BreastDM and BCMedSet demonstrates BioDP-SyNet's gains in Dice, Io
 
 BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel paths that synergistically extract and enhance features from two complementary physical perspectives.BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel paths that synergistically extract and enhance features from two complementary physical perspectives.
 
-![Qualitative Comparison](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/BioDP-SyNet.png)
+![BioDP-SyNet Architecture](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/BioDP-SyNet.png)
 
 *Figure: Architectural schematic of BioDP-SyNet, detailing its dual-encoder framework where the Spatial Diffusion Path (top) and Frequency Fluctuation Path (bottom) synergize to fuse multi-scale features into a shared decoder.*
 
@@ -27,14 +27,20 @@ BioDP-SyNet employs a dual-encoder, single-decoder architecture with parallel pa
 
 This path focuses on suppressing image noise and smoothing the highly heterogeneous signals within tumour regions.
 
+![Edge-Preserving Explicit Diffusion Layer](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/EPED.png)
+
   - **EPED (Edge-Preserving Explicit Diffusion) Layer**: The core module, which abstracts feature maps as manifolds and evolves them using an adaptive Partial Differential Equation (PDE). It effectively removes high-frequency noise while preserving critical tumour boundary structures via a content-aware diffusion coefficient.
 
 ### 2\. Frequency Fluctuation Path
 
 This path is designed to overcome the local receptive field limitations of traditional convolutions, capturing macroscopic tumour morphology and fine boundary geometry.
 
+![FreqDualis-HoloSchrod Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/FDH.png)
+
   - **FDH (FreqDualis-HoloSchrod) Attention**: Inspired by the Schrödinger equation from quantum mechanics, this module operates in the frequency domain to capture global shape information and phase consistency, crucial for holistic morphological assessment.
   - **La-Gra (Laplacian-Gradient) Attention**: Embeds fixed differential operators (Laplacian and gradient) as explicit physical priors into the attention mechanism. This enables the model to better distinguish true anatomical boundaries from artifacts and enhances its sensitivity to subtle boundary details.
+
+![Laplacian-Gradient Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/La-Gra.png)
 
 -----
 
