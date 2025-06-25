@@ -38,7 +38,9 @@ This path is designed to overcome the local receptive field limitations of tradi
 ![FreqDualis-HoloSchrod Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/FDH.png)
 
   - **FDH (FreqDualis-HoloSchrod) Attention**: Inspired by the Schrödinger equation from quantum mechanics, this module operates in the frequency domain to capture global shape information and phase consistency, crucial for holistic morphological assessment.
+
 ![Laplacian-Gradient Attention](https://github.com/IMOP-lab/BioDP-SyNet/raw/main/Picture/La-Gra.png)
+
   - **La-Gra (Laplacian-Gradient) Attention**: Embeds fixed differential operators (Laplacian and gradient) as explicit physical priors into the attention mechanism. This enables the model to better distinguish true anatomical boundaries from artifacts and enhances its sensitivity to subtle boundary details.
 
 
