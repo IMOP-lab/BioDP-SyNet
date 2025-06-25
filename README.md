@@ -164,3 +164,7 @@ This project is licensed under the [MIT License](https://github.com/IMOP-lab/Bio
 ## Acknowledgments
 
 We thank the creators and contributors of the [BreastDM](https://doi.org/10.1016/j.compbiomed.2023.107255) dataset. We also extend our gratitude to Sir Run Run Shaw Hospital and The Second Affiliated Hospital, Zhejiang University School of Medicine for their support in collecting the BCMedSet dataset.
+
+## Question
+
+If you have any qusetion, please contact '[gaopeng.huang@hdu.edu.cn](mailto:gaopeng.huang@hdu.edu.cn)' and '[guohui71@sxmu.edu.cn](mailto:guohui71@sxmu.edu.cn)'.
