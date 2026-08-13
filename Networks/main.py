@@ -73,37 +73,9 @@ class OutConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-# # --------------------------------------------
-
-# class EPEDLayer(nn.Module):
-#     def __init__(self, in_channels, diffusion_coefficient=0, num_iterations=3):
-#         super(EPEDLayer, self).__init__()
-#         self.in_channels = in_channels
-#         self.diffusion_coefficient = diffusion_coefficient
-#         self.num_iterations = num_iterations
-
-#         # Laplacian operator for diffusion
-#         self.laplacian = nn.Conv2d(
-#             in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False
-#         )
-#         laplacian_kernel = torch.tensor(
-#             [[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32
-#         ).repeat(in_channels, 1, 1, 1)
-#         self.laplacian.weight.data = laplacian_kernel
-#         self.laplacian.weight.requires_grad = False
-
-#     def forward(self, x):
-#         for _ in range(self.num_iterations):
-#             laplacian_x = self.laplacian(x)
-#             x = x + self.diffusion_coefficient * laplacian_x
-#         return x
-    
-
-# ----------------------------------------------
-
-class EPEDLayer(nn.Module):
+class GloballyModulatedDiffusion(nn.Module):
     def __init__(self, in_channels, diffusion_coefficient=0.1, num_iterations=3):
-        super(EPEDLayer, self).__init__()
+        super().__init__()
         self.in_channels = in_channels
         self.num_iterations = num_iterations
 
@@ -181,9 +153,9 @@ class CoordAtt(nn.Module):
         return out
 
     
-class HoloschrodAtt(nn.Module):
+class FrequencyDomainPropagatorAttention(nn.Module):
     def __init__(self, in_channels, reduction=32, num_iterations=3, diffusion_coeff=0.1):
-        super(HoloschrodAtt, self).__init__()
+        super().__init__()
         self.in_channels = in_channels
         self.num_iterations = num_iterations
         self.diffusion_coeff = diffusion_coeff
@@ -231,7 +203,7 @@ class HoloschrodAtt(nn.Module):
         ifft_x = torch.fft.irfftn(fft_x, s=x.shape[-2:], dim=(-2, -1), norm='ortho')
         return ifft_x
     
-class LaplacianGradientAttention(nn.Module):
+class DifferentialOperatorPriorsAttention(nn.Module):
     """
     拉普拉斯梯度注意力模块。
     结合了多头自注意力、多尺度卷积特征融合以及基于物理（拉普拉斯、梯度）的局部信息提取。
@@ -335,9 +307,9 @@ class LaplacianGradientAttention(nn.Module):
         return enhanced_feats
     
 
-class DP_CoNet(nn.Module):
+class ODPNet(nn.Module):
     def __init__(self, n_channels, n_classes, bilinear=False):
-        super(DP_CoNet, self).__init__()
+        super().__init__()
     
         self.n_classes = n_classes
         self.bilinear = bilinear
@@ -350,11 +322,11 @@ class DP_CoNet(nn.Module):
         factor = 2 if bilinear else 1
         self.down4 = Down(512, 1024 // factor)
 
-        self.diffusion_attn64 = EPEDLayer(64)
-        self.diffusion_attn128 = EPEDLayer(128)
-        self.diffusion_attn256 = EPEDLayer(256)
-        self.diffusion_attn512 = EPEDLayer(512)
-        self.diffusion_attn1024 = EPEDLayer(1024)
+        self.gmd64 = GloballyModulatedDiffusion(64)
+        self.gmd128 = GloballyModulatedDiffusion(128)
+        self.gmd256 = GloballyModulatedDiffusion(256)
+        self.gmd512 = GloballyModulatedDiffusion(512)
+        self.gmd1024 = GloballyModulatedDiffusion(1024)
     
         self.up1 = Up(2048, 1024 // factor, bilinear)
         self.up2 = Up(1024, 512 // factor, bilinear)
@@ -363,7 +335,7 @@ class DP_CoNet(nn.Module):
 
         self.outc = OutConv(128, n_classes)
 
-        self.combined_attention = LaplacianGradientAttention(
+        self.dop_attention = DifferentialOperatorPriorsAttention(
             channels=1024,
             num_heads=8,
             kernels=[1, 3, 5, 7],
@@ -373,11 +345,10 @@ class DP_CoNet(nn.Module):
             dynamic_ratio=4
         )
 
-        self.freq_attn64 = HoloschrodAtt(64)
-        self.freq_attn128 = HoloschrodAtt(128)
-        self.freq_attn256 = HoloschrodAtt(256)
-        self.freq_attn512 = HoloschrodAtt(512)
-        self.freq_attn1024 = HoloschrodAtt(1024)
+        self.fdp_attention64 = FrequencyDomainPropagatorAttention(64)
+        self.fdp_attention128 = FrequencyDomainPropagatorAttention(128)
+        self.fdp_attention256 = FrequencyDomainPropagatorAttention(256)
+        self.fdp_attention512 = FrequencyDomainPropagatorAttention(512)
 
 
         self.feature_extractor = FeatureExtractor(
@@ -397,31 +368,31 @@ class DP_CoNet(nn.Module):
 
     def forward(self, x):
         y1 = self.inc1(x)
-        y1 = self.diffusion_attn64(y1)
+        y1 = self.gmd64(y1)
         y2 = self.down1(y1)
-        y2 = self.diffusion_attn128(y2)
+        y2 = self.gmd128(y2)
         y3 = self.down2(y2)
-        y3 = self.diffusion_attn256(y3)
+        y3 = self.gmd256(y3)
         y4 = self.down3(y3)
-        y4 = self.diffusion_attn512(y4)
+        y4 = self.gmd512(y4)
         y5 = self.down4(y4)
-        y5 = self.diffusion_attn1024(y5)
+        y5 = self.gmd1024(y5)
 
         features = self.feature_extractor(x)
         x1 = features[0]
-        x1 = self.freq_attn64(x1)
+        x1 = self.fdp_attention64(x1)
         e1 = torch.cat([y1, x1], dim=1)
         x2 = features[1]
-        x2 = self.freq_attn128(x2)
+        x2 = self.fdp_attention128(x2)
         e2 = torch.cat([y2, x2], dim=1)
         x3 = features[2]
-        x3 = self.freq_attn256(x3)
+        x3 = self.fdp_attention256(x3)
         e3 = torch.cat([y3, x3], dim=1)
         x4 = features[3]
-        x4 = self.freq_attn512(x4)
+        x4 = self.fdp_attention512(x4)
         e4 = torch.cat([y4, x4], dim=1)
         x5 = features[4]
-        x5 = self.combined_attention(x5)
+        x5 = self.dop_attention(x5)
         e5 = torch.cat([y5, x5], dim=1)
 
         z4 = self.up1(e5, e4)
@@ -432,4 +403,10 @@ class DP_CoNet(nn.Module):
 
         logits = self.outc(z1)
         return logits
-    
+
+
+# Backward-compatible class aliases for earlier training scripts.
+EPEDLayer = GloballyModulatedDiffusion
+HoloschrodAtt = FrequencyDomainPropagatorAttention
+LaplacianGradientAttention = DifferentialOperatorPriorsAttention
+DP_CoNet = ODPNet

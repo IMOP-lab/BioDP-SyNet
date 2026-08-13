@@ -30,14 +30,14 @@ Picture/                   Earlier architecture and module illustrations
 
 ### Source-code terminology
 
-The manuscript uses the finalized R5 terminology below. Some source identifiers and figures retain their earlier names; the following mapping is provided for traceability.
+The source code uses the same module terminology as the manuscript. Backward-compatible class aliases are retained for earlier training scripts.
 
-| R5 manuscript term | Current implementation identifier |
-| --- | --- |
-| GMD layer | `EPEDLayer` / `diffusion_attn*` |
-| FDP attention | `HoloschrodAtt` / `freq_attn*` |
-| DOP attention | `LaplacianGradientAttention` / `combined_attention` |
-| ODP-Net | `DP_CoNet` |
+| Manuscript term | Implementation identifier | Legacy alias |
+| --- | --- | --- |
+| GMD layer | `GloballyModulatedDiffusion` / `gmd*` | `EPEDLayer` / `diffusion_attn*` |
+| FDP Attention | `FrequencyDomainPropagatorAttention` / `fdp_attention*` | `HoloschrodAtt` / `freq_attn*` |
+| DOP Attention | `DifferentialOperatorPriorsAttention` / `dop_attention` | `LaplacianGradientAttention` / `combined_attention` |
+| ODP-Net | `ODPNet` | `DP_CoNet` |
 
 The model implementation is located in [`Networks/main.py`](Networks/main.py).
 
