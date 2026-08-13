@@ -75,36 +75,11 @@ class OutConv(nn.Module):
 
 # # --------------------------------------------
 
-class EPEDLayer(nn.Module):
-    def __init__(self, in_channels, diffusion_coefficient=0, num_iterations=3):
-        super(EPEDLayer, self).__init__()
-        self.in_channels = in_channels
-        self.diffusion_coefficient = diffusion_coefficient
-        self.num_iterations = num_iterations
-
-        # Laplacian operator for diffusion
-        self.laplacian = nn.Conv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False
-        )
-        laplacian_kernel = torch.tensor(
-            [[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32
-        ).repeat(in_channels, 1, 1, 1)
-        self.laplacian.weight.data = laplacian_kernel
-        self.laplacian.weight.requires_grad = False
-
-    def forward(self, x):
-        for _ in range(self.num_iterations):
-            laplacian_x = self.laplacian(x)
-            x = x + self.diffusion_coefficient * laplacian_x
-        return x
-    
-
-# ----------------------------------------------
-
 # class EPEDLayer(nn.Module):
-#     def __init__(self, in_channels, diffusion_coefficient=0.1, num_iterations=3):
+#     def __init__(self, in_channels, diffusion_coefficient=0, num_iterations=3):
 #         super(EPEDLayer, self).__init__()
 #         self.in_channels = in_channels
+#         self.diffusion_coefficient = diffusion_coefficient
 #         self.num_iterations = num_iterations
 
 #         # Laplacian operator for diffusion
@@ -117,23 +92,48 @@ class EPEDLayer(nn.Module):
 #         self.laplacian.weight.data = laplacian_kernel
 #         self.laplacian.weight.requires_grad = False
 
-#         # Adaptive diffusion coefficient
-#         self.adaptive_diffusion = nn.Sequential(
-#             nn.AdaptiveAvgPool2d((1, 1)),
-#             nn.Conv2d(in_channels, in_channels, kernel_size=1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(in_channels, 1, kernel_size=1),
-#             nn.Sigmoid()
-#         )
-
 #     def forward(self, x):
-#         residual = x.clone() # Residual Connection
 #         for _ in range(self.num_iterations):
 #             laplacian_x = self.laplacian(x)
-#             adaptive_coeff = self.adaptive_diffusion(x)
-#             x = x + adaptive_coeff * laplacian_x
-#         x = x + residual # Adding Residual Connection
+#             x = x + self.diffusion_coefficient * laplacian_x
 #         return x
+    
+
+# ----------------------------------------------
+
+class EPEDLayer(nn.Module):
+    def __init__(self, in_channels, diffusion_coefficient=0.1, num_iterations=3):
+        super(EPEDLayer, self).__init__()
+        self.in_channels = in_channels
+        self.num_iterations = num_iterations
+
+        # Laplacian operator for diffusion
+        self.laplacian = nn.Conv2d(
+            in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False
+        )
+        laplacian_kernel = torch.tensor(
+            [[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32
+        ).repeat(in_channels, 1, 1, 1)
+        self.laplacian.weight.data = laplacian_kernel
+        self.laplacian.weight.requires_grad = False
+
+        # Adaptive diffusion coefficient
+        self.adaptive_diffusion = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Conv2d(in_channels, in_channels, kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels, 1, kernel_size=1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        residual = x.clone() # Residual Connection
+        for _ in range(self.num_iterations):
+            laplacian_x = self.laplacian(x)
+            adaptive_coeff = self.adaptive_diffusion(x)
+            x = x + adaptive_coeff * laplacian_x
+        x = x + residual # Adding Residual Connection
+        return x
 
 
 
