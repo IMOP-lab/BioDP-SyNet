@@ -161,13 +161,12 @@ class FrequencyDomainPropagatorAttention_Ablation(nn.Module):
         ifft_x = torch.fft.irfftn(fft_x, s=x.shape[-2:], dim=(-2, -1), norm='ortho')
         return ifft_x
     
-class DifferentialOperatorPriorsAttention(nn.Module):
+class DifferentialOperatorPriorsAttention_Ablation(nn.Module):
     """
     拉普拉斯梯度注意力模块。
     结合了多头自注意力、多尺度卷积特征融合以及基于物理（拉普拉斯、梯度）的局部信息提取。
     """
-    def __init__(self, channels, num_heads, kernels=[1, 3, 5, 7], reduction=16, group=1, L=32, dynamic_ratio=4,
-                 diffusion_coefficient=0.1, convection_coefficient=0.1):
+    def __init__(self, channels, num_heads, kernels=[1, 3, 5, 7], reduction=16, group=1, L=32, dynamic_ratio=4):
         """
         初始化函数。
         Args:
@@ -178,8 +177,6 @@ class DifferentialOperatorPriorsAttention(nn.Module):
             group (int): 卷积中的分组数。
             L (int): 用于计算动态权重的线性层输出维度下限。
             dynamic_ratio (int): 用于动态权重计算的参数。
-            diffusion_coefficient (float): 模拟扩散的物理系数。
-            convection_coefficient (float): 模拟对流的物理系数。
         """
         super().__init__()
         self.num_heads = num_heads
@@ -201,20 +198,6 @@ class DifferentialOperatorPriorsAttention(nn.Module):
         self.fc = nn.Linear(channels, self.d)                                                       # 用于计算动态权重的全连接层
         self.fcs = nn.ModuleList([nn.Linear(self.d, channels) for _ in kernels])                    # 为每个尺度生成权重
         self.softmax = nn.Softmax(dim=0)                                                            # 在不同尺度上进行Softmax加权
-        # 新增：用于物理约束的分支（物理残差计算）        
-        self.conv_laplacian = nn.Conv2d(channels, channels, kernel_size=3, padding=1, groups=channels, bias=False)  # 用于计算拉普拉斯算子（模拟扩散）的深度可分离卷积
-
-        laplacian_kernel = torch.tensor([[[[0, 1, 0],
-                                            [1, -4, 1],
-                                            [0, 1, 0]]]], dtype=torch.float32)                      # 定义并设置拉普拉斯核
-        laplacian_kernel = laplacian_kernel.repeat(channels, 1, 1, 1) # 复制到所有通道
-        self.conv_laplacian.weight.data = laplacian_kernel
-        self.conv_laplacian.weight.requires_grad = False # 固定拉普拉斯核不参与训练
-        # 可选：其他物理算子，比如对流项计算（基于梯度）
-        self.conv_gradient_x = nn.Conv2d(channels, channels, kernel_size=(1, 3), padding=(0, 1), groups=channels, bias=False)           # 用于计算 x 方向梯度的卷积
-        self.conv_gradient_y = nn.Conv2d(channels, channels, kernel_size=(3, 1), padding=(1, 0), groups=channels, bias=False)           # 用于计算 y 方向梯度的卷积
-        self.diffusion_coefficient = diffusion_coefficient              # 存储物理参数
-        self.convection_coefficient = convection_coefficient
 
     def forward(self, x):
         """
@@ -222,7 +205,7 @@ class DifferentialOperatorPriorsAttention(nn.Module):
         Args:
             x (torch.Tensor): 输入特征图，形状为 (bsz, ch, ht, wd)。
         Returns:
-            torch.Tensor: 融合了注意力、多尺度卷积和物理信息的增强特征图。
+            torch.Tensor: 融合了注意力和多尺度卷积的特征图。
         """
         bsz, ch, ht, wd = x.shape
         # 1. 多头自注意力计算
@@ -249,20 +232,7 @@ class DifferentialOperatorPriorsAttention(nn.Module):
         attention_weights = self.softmax(torch.stack(weights, dim=0))                   # 在尺度维度应用Softmax (num_kernels, bsz, ch, 1, 1)
         # 加权融合多尺度特征
         fused_feats = torch.einsum('nbcwh,nbcwh->bcwh', attention_weights, feats)       # (bsz, ch, ht, wd)
-        # 4. 物理信息分支：计算局部物理残差
-        laplacian_response = self.conv_laplacian(x) # 计算拉普拉斯响应
-        laplacian_response = torch.sigmoid(laplacian_response) # 限制数值范围，防止过大或过小
-        # 计算 x 和 y 方向的梯度
-        grad_x = self.conv_gradient_x(x)
-        grad_y = self.conv_gradient_y(x)
-        # 计算对流项 (u * grad(u) 的简化形式，这里用 x * grad(x) + x * grad(y) 作为示例)
-        convection_response = self.convection_coefficient * (x * grad_x + x * grad_y)
-        # 物理残差项可以看作是 diffusive + convective 部分的加权和
-        physics_response = self.diffusion_coefficient * laplacian_response + convection_response
-        # 5. 融合原始注意力输出和物理响应
-        # 这里设计为残差连接方式融合
-        enhanced_feats = fused_feats + physics_response
-        return enhanced_feats
+        return fused_feats
     
 
 class ODPNet(nn.Module):
@@ -293,7 +263,7 @@ class ODPNet(nn.Module):
 
         self.outc = OutConv(128, n_classes)
 
-        self.dop_attention = DifferentialOperatorPriorsAttention(
+        self.dop_attention = DifferentialOperatorPriorsAttention_Ablation(
             channels=1024,
             num_heads=8,
             kernels=[1, 3, 5, 7],
@@ -366,5 +336,5 @@ class ODPNet(nn.Module):
 # Backward-compatible class aliases for earlier training scripts.
 EPEDLayer = GloballyModulatedDiffusion_Ablation
 HoloschrodAtt = FrequencyDomainPropagatorAttention_Ablation
-LaplacianGradientAttention = DifferentialOperatorPriorsAttention
+LaplacianGradientAttention = DifferentialOperatorPriorsAttention_Ablation
 DP_CoNet = ODPNet
