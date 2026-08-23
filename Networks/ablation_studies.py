@@ -134,32 +134,17 @@ class CoordAtt(nn.Module):
         return out
 
     
-class FrequencyDomainPropagatorAttention(nn.Module):
-    def __init__(self, in_channels, reduction=32, num_iterations=3, diffusion_coeff=0.1):
+class FrequencyDomainPropagatorAttention_Ablation(nn.Module):
+    """Frequency-domain attention with PINNs/PDE propagation removed."""
+
+    def __init__(self, in_channels, reduction=32):
         super().__init__()
-        self.in_channels = in_channels
-        self.num_iterations = num_iterations
-        self.diffusion_coeff = diffusion_coeff
 
         # 坐标注意力用于分别处理实部和虚部
         self.coord_att_real = CoordAtt(in_channels, in_channels, reduction=reduction)
         self.coord_att_imag = CoordAtt(in_channels, in_channels, reduction=reduction)
 
         # 频域操作
-        self.conv1 = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.conv2 = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.sigmoid = nn.Sigmoid()
-
-        # Schrödinger 方程中的偏导数操作
-        self.laplacian = nn.Conv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False
-        )
-        laplacian_kernel = torch.tensor(
-            [[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32
-        ).repeat(in_channels, 1, 1, 1)
-        self.laplacian.weight.data = laplacian_kernel
-        self.laplacian.weight.requires_grad = False
-
     def forward(self, x):
         # Step 1: 频域转换
         fft_x = torch.fft.rfftn(x, dim=(-2, -1), norm='ortho')
@@ -170,15 +155,7 @@ class FrequencyDomainPropagatorAttention(nn.Module):
         fft_x_real = self.coord_att_real(fft_x_real)
         fft_x_imag = self.coord_att_imag(fft_x_imag)
 
-        # Step 3: Schrödinger 方程约束 (波动方程)
-        for _ in range(self.num_iterations):
-            laplacian_real = self.laplacian(fft_x_real)
-            laplacian_imag = self.laplacian(fft_x_imag)
-
-            # 更新实部和虚部，确保满足 Schrödinger 方程
-            fft_x_real = fft_x_real - self.diffusion_coeff * laplacian_imag
-            fft_x_imag = fft_x_imag + self.diffusion_coeff * laplacian_real
-
+        # Step 3: 直接重组频域实部和虚部，不施加 PINNs/PDE 约束
         # Step 4: 合成结果并返回到时域
         fft_x = torch.complex(fft_x_real, fft_x_imag)
         ifft_x = torch.fft.irfftn(fft_x, s=x.shape[-2:], dim=(-2, -1), norm='ortho')
@@ -326,10 +303,10 @@ class ODPNet(nn.Module):
             dynamic_ratio=4
         )
 
-        self.fdp_attention64 = FrequencyDomainPropagatorAttention(64)
-        self.fdp_attention128 = FrequencyDomainPropagatorAttention(128)
-        self.fdp_attention256 = FrequencyDomainPropagatorAttention(256)
-        self.fdp_attention512 = FrequencyDomainPropagatorAttention(512)
+        self.fdp_attention64 = FrequencyDomainPropagatorAttention_Ablation(64)
+        self.fdp_attention128 = FrequencyDomainPropagatorAttention_Ablation(128)
+        self.fdp_attention256 = FrequencyDomainPropagatorAttention_Ablation(256)
+        self.fdp_attention512 = FrequencyDomainPropagatorAttention_Ablation(512)
 
 
         self.feature_extractor = FeatureExtractor(
@@ -388,6 +365,6 @@ class ODPNet(nn.Module):
 
 # Backward-compatible class aliases for earlier training scripts.
 EPEDLayer = GloballyModulatedDiffusion_Ablation
-HoloschrodAtt = FrequencyDomainPropagatorAttention
+HoloschrodAtt = FrequencyDomainPropagatorAttention_Ablation
 LaplacianGradientAttention = DifferentialOperatorPriorsAttention
 DP_CoNet = ODPNet
