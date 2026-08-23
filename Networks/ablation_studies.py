@@ -73,39 +73,20 @@ class OutConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-class GloballyModulatedDiffusion(nn.Module):
-    def __init__(self, in_channels, diffusion_coefficient=0.1, num_iterations=3):
+class GloballyModulatedDiffusion_Ablation(nn.Module):
+    """Standard learnable feature refinement used in the ablation model."""
+
+    def __init__(self, in_channels):
         super().__init__()
-        self.in_channels = in_channels
-        self.num_iterations = num_iterations
-
-        # Laplacian operator for diffusion
-        self.laplacian = nn.Conv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False
-        )
-        laplacian_kernel = torch.tensor(
-            [[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32
-        ).repeat(in_channels, 1, 1, 1)
-        self.laplacian.weight.data = laplacian_kernel
-        self.laplacian.weight.requires_grad = False
-
-        # Adaptive diffusion coefficient
-        self.adaptive_diffusion = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Conv2d(in_channels, in_channels, kernel_size=1),
+        self.refine = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1,
+                      groups=in_channels, bias=False),
+            nn.BatchNorm2d(in_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, 1, kernel_size=1),
-            nn.Sigmoid()
         )
 
     def forward(self, x):
-        residual = x.clone() # Residual Connection
-        for _ in range(self.num_iterations):
-            laplacian_x = self.laplacian(x)
-            adaptive_coeff = self.adaptive_diffusion(x)
-            x = x + adaptive_coeff * laplacian_x
-        x = x + residual # Adding Residual Connection
-        return x
+        return x + self.refine(x)
 
 
 
@@ -322,11 +303,11 @@ class ODPNet(nn.Module):
         factor = 2 if bilinear else 1
         self.down4 = Down(512, 1024 // factor)
 
-        self.gmd64 = GloballyModulatedDiffusion(64)
-        self.gmd128 = GloballyModulatedDiffusion(128)
-        self.gmd256 = GloballyModulatedDiffusion(256)
-        self.gmd512 = GloballyModulatedDiffusion(512)
-        self.gmd1024 = GloballyModulatedDiffusion(1024)
+        self.gmd64 = GloballyModulatedDiffusion_Ablation(64)
+        self.gmd128 = GloballyModulatedDiffusion_Ablation(128)
+        self.gmd256 = GloballyModulatedDiffusion_Ablation(256)
+        self.gmd512 = GloballyModulatedDiffusion_Ablation(512)
+        self.gmd1024 = GloballyModulatedDiffusion_Ablation(1024)
     
         self.up1 = Up(2048, 1024 // factor, bilinear)
         self.up2 = Up(1024, 512 // factor, bilinear)
@@ -406,7 +387,7 @@ class ODPNet(nn.Module):
 
 
 # Backward-compatible class aliases for earlier training scripts.
-EPEDLayer = GloballyModulatedDiffusion
+EPEDLayer = GloballyModulatedDiffusion_Ablation
 HoloschrodAtt = FrequencyDomainPropagatorAttention
 LaplacianGradientAttention = DifferentialOperatorPriorsAttention
 DP_CoNet = ODPNet
